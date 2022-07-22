@@ -1,21 +1,49 @@
 const express = require('express');
+
+//importando validações
+const { celebrate, Segments, Joi } = require('celebrate');
+
 const routes = express.Router();
 const OngController = require('./controllers/OngController');
 const IncidentController = require('./controllers/IncidentController');
 const ProfileController = require('./controllers/ProfileController');
 const SessionController = require('./controllers/SessionController');
 
-//rota para cadastro e listagem de ongs
+//rota para listagem de ONGs
 routes.get('/ongs', OngController.index);
-routes.post('/ongs', OngController.create);
+
+//Rota de criação de ONG
+//Segments: para puxar todos os parametros
+routes.post('/ongs', celebrate({
+  [Segments.BODY]: Joi.object().keys({
+    name: Joi.string().required(),
+    email: Joi.string().required().email(),
+    whatsapp: Joi.string().required().min(10).max(12),
+    city: Joi.string().required(),
+    uf: Joi.string().required().length(2),
+  })
+}), OngController.create);
 
 //Profile para pesquisar filtro especifico
-routes.get('/profile', ProfileController.index);
+routes.get('/profile', celebrate({
+  [Segments.HEADERS]: Joi.object({
+    authorization: Joi.string().required(),}).unknown(),
+  }), ProfileController.index);
 
 //rota para cadastro e listagem de Incidents
-routes.get('/incidents', IncidentController.index);
+routes.get('/incidents', celebrate({
+  [Segments.QUERY]: Joi.object().keys({
+    page: Joi.number(),
+  })
+}), IncidentController.index);
+
 routes.post('/incidents', IncidentController.create);
-routes.delete('/incidents/:id', IncidentController.delete);
+//rota com validação de delete
+routes.delete('/incidents/:id', celebrate({
+  [Segments.PARAMS]: Joi.object().keys({
+    id: Joi.number().required(),
+  })
+}), IncidentController.delete);
 
 //login
 routes.post('/sessions', SessionController.create);
